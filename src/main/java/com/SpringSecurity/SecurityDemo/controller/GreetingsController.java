@@ -28,8 +28,7 @@ public class GreetingsController {
 
     @Autowired
     private JwtUtils jwtUtils;
-    @Autowired
-    private UserDetails userDetails;
+
     @Autowired
     private AuthenticationManager authenticationManager;
 

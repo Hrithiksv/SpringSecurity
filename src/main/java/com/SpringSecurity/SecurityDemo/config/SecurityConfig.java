@@ -3,6 +3,8 @@ package com.SpringSecurity.SecurityDemo.config;
 import com.SpringSecurity.SecurityDemo.jwt.AuthEntryPointJwt;
 import com.SpringSecurity.SecurityDemo.jwt.AuthTokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,7 +52,7 @@ public class SecurityConfig {
         //* For each request of any kind, authenticate them all
         http.authorizeHttpRequests((authorizeRequests) ->
                 authorizeRequests.requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/api/signin").permitAll()
+                        .requestMatchers("/signin").permitAll()
                         .anyRequest().authenticated());
         //* Do not maintain session cookies on client side make it true stateless
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
@@ -66,26 +68,51 @@ public class SecurityConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(UserDetailsService.class)
     public UserDetailsService userDetailsService() {
-        JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
-        if (!jdbcUserDetailsManager.userExists("user1")) {
+        return new JdbcUserDetailsManager(dataSource);
+        //return new InMemoryUserDetailsManager(user1, admin);
+    }
+
+    @Bean
+    public CommandLineRunner initData(UserDetailsService userDetailsService) {
+//        return args -> {
+//            JdbcUserDetailsManager manager = (JdbcUserDetailsManager) userDetailsService;
+//            UserDetails user1 = User.withUsername("user1")
+//                    .password(passwordEncoder().encode("password1"))
+//                    .roles("USER")
+//                    .build();
+//            UserDetails admin = User.withUsername("admin")
+//                    //.password(passwordEncoder().encode("adminPass"))
+//                    .password(passwordEncoder().encode("adminPass"))
+//                    .roles("ADMIN")
+//                    .build();
+//
+//            JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager(dataSource);
+//            userDetailsManager.createUser(user1);
+//            userDetailsManager.createUser(admin);
+//        };
+        return args -> {
+            JdbcUserDetailsManager manager = (JdbcUserDetailsManager) userDetailsService;
+            if (manager.userExists("user1")) {
+                manager.deleteUser("user1");
+            }
+            if (manager.userExists("admin")) {
+                manager.deleteUser("admin");
+            }
+
             UserDetails user1 = User.withUsername("user1")
                     .password(passwordEncoder().encode("user1"))
                     .roles("USER")
                     .build();
-            jdbcUserDetailsManager.createUser(user1);
-        }
-
-        if (!jdbcUserDetailsManager.userExists("admin")) {
             UserDetails admin = User.withUsername("admin")
                     .password(passwordEncoder().encode("admin"))
                     .roles("ADMIN")
                     .build();
-            jdbcUserDetailsManager.createUser(admin);
-        }
 
-        return jdbcUserDetailsManager;
-        //return new InMemoryUserDetailsManager(user1, admin);
+            manager.createUser(user1);
+            manager.createUser(admin);
+        };
     }
 
     @Bean
